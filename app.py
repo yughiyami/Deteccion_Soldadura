@@ -81,8 +81,8 @@ def reset_ficha():
 st.sidebar.title("🔧 Configuración")
 st.sidebar.markdown("---")
 confidence = st.sidebar.slider("Umbral de Confianza IA", 0.0, 1.0, 0.25, 0.05)
-model_path = st.sidebar.text_input("Ruta Modelo Soldadura (.pt)", "yolov8n.pt")
-surface_model_path = st.sidebar.text_input("Ruta Modelo Superficie (.pt)", "runs/detect/train/weights/best.pt")
+model_path = st.sidebar.text_input("Ruta Modelo Soldadura (.pt)", "models/welding_model.pt")
+surface_model_path = st.sidebar.text_input("Ruta Modelo Superficie (.pt)", "models/surface_model.pt")
 
 try:
     model = YOLO(model_path)
