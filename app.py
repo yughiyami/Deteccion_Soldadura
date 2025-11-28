@@ -122,13 +122,13 @@ if current_step == 1:
         if surf_file:
             surf_img = Image.open(surf_file).convert("RGB")
             c1, c2 = st.columns(2)
-            c1.image(surf_img, caption="Superficie Material", use_column_width=True)
+            c1.image(surf_img, caption="Superficie Material", use_container_width=True)
             
             if st.button("Analizar Superficie"):
                 if surface_model:
                     res_surf = surface_model.predict(np.array(surf_img), conf=confidence)
                     res_plotted_surf = res_surf[0].plot()
-                    c2.image(res_plotted_surf, caption="Detección de Contaminantes", use_column_width=True)
+                    c2.image(res_plotted_surf, caption="Detección de Contaminantes", use_container_width=True)
                     
                     # Contar defectos
                     surf_boxes = res_surf[0].boxes
@@ -219,13 +219,14 @@ elif current_step == 2:
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Imagen Original", use_column_width=True)
+        st.image(image, caption="Imagen Original", use_container_width=True)
         
         if st.button("Ejecutar Análisis IA ⚡"):
             with st.spinner('Analizando imagen y calculando métricas...'):
                 # Análisis YOLO
-                img_array = np.array(image)
-                results = model.predict(img_array, conf=confidence)
+                # Análisis YOLO
+                # Pasar imagen PIL directa para asegurar manejo correcto de canales RGB
+                results = model.predict(image, conf=confidence)
                 res_plotted = results[0].plot()
                 
                 # Guardar imagen procesada
@@ -264,15 +265,21 @@ elif current_step == 2:
                 auto_data['secciones_criticas'] = "Ninguna" if len(boxes) == 0 else f"{len(boxes)} zonas"
 
                 # Llenar campos automáticos de Defectología
-                auto_data['def_poros'] = f"{defect_counts.get('Porosity', 0)}"
-                auto_data['def_porosidad_lineal'] = "0 mm" # Simulado
-                auto_data['def_socavado'] = f"{defect_counts.get('Undercut', 0)}"
-                auto_data['def_grietas'] = f"{defect_counts.get('Crack', 0)}"
-                auto_data['def_falta_fusion'] = f"{defect_counts.get('Lack of Fusion', 0)}"
-                auto_data['def_exceso_refuerzo'] = "No detectado"
-                auto_data['def_mordeduras'] = "0"
-                auto_data['def_spatter'] = "Bajo"
-                auto_data['def_irregular'] = "Bajo"
+                # Mapeo más robusto de clases (ajustar según las clases reales del modelo)
+                # Clases comunes: Porosity, Undercut, Crack, Lack of Fusion, Spatter, Burn Through
+                
+                def get_count(names_list):
+                    return sum(defect_counts.get(name, 0) for name in names_list)
+
+                auto_data['def_poros'] = f"{get_count(['Porosity', 'Poros', 'Poro'])} detectados"
+                auto_data['def_porosidad_lineal'] = "No detectada" if get_count(['Linear Porosity']) == 0 else "Detectada"
+                auto_data['def_socavado'] = f"{get_count(['Undercut', 'Socavado'])} zonas"
+                auto_data['def_grietas'] = f"{get_count(['Crack', 'Grieta'])} detectadas"
+                auto_data['def_falta_fusion'] = f"{get_count(['Lack of Fusion', 'Falta Fusion'])} zonas"
+                auto_data['def_exceso_refuerzo'] = f"{get_count(['Excess Reinforcement'])} zonas"
+                auto_data['def_mordeduras'] = f"{get_count(['Bite', 'Mordedura'])} detectadas"
+                auto_data['def_spatter'] = "Alto" if get_count(['Spatter']) > 5 else ("Bajo" if get_count(['Spatter']) > 0 else "Nulo")
+                auto_data['def_irregular'] = "Detectado" if get_count(['Irregular', 'Bad Bead', 'Bad Welding']) > 0 else "No detectado"
 
                 # Llenar campos automáticos de Dimensionalidad
                 auto_data['dim_ancho'] = auto_data['ancho_promedio']
@@ -304,7 +311,7 @@ elif current_step == 3:
     
     col_img, col_info = st.columns([1, 1])
     with col_img:
-        st.image(st.session_state.ficha['processed_image'], caption="Imagen Analizada", use_column_width=True)
+        st.image(st.session_state.ficha['processed_image'], caption="Imagen Analizada", use_container_width=True)
     
     with col_info:
         st.markdown("#### Resumen de Detección")
